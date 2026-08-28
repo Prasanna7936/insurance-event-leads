@@ -1,0 +1,27 @@
+{
+  "name": "insurance-event-leads",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Event data collection app for insurance agents \u2014 lead capture with MSG91 OTP verification, dashboard and Excel export.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "verify:supabase": "node scripts/verify-supabase.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.9"
+  }
+}

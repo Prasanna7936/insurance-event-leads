@@ -1,0 +1,7 @@
+project_id = "insurance-event-leads"
+
+[functions.send-otp]
+verify_jwt = true
+
+[functions.verify-otp]
+verify_jwt = true
