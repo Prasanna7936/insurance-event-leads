@@ -11,6 +11,21 @@ export function normalizeIndianMobile(raw: string): string | null {
   return `+91${digits}`
 }
 
+/**
+ * What the Mobile Number field is allowed to contain: exactly the 10 national
+ * digits, nothing else.
+ *
+ * A country code or trunk prefix is dropped rather than counted, so pasting
+ * "+91 98765 43210" or "098765 43210" yields "9876543210" instead of silently
+ * truncating to a different, still-plausible number.
+ */
+export function toTenDigitMobile(raw: string): string {
+  let digits = (raw ?? '').replace(/\D/g, '')
+  if (digits.length > 10 && digits.startsWith('91')) digits = digits.slice(2)
+  if (digits.length > 10 && digits.startsWith('0')) digits = digits.slice(1)
+  return digits.slice(0, 10)
+}
+
 export function isValidIndianMobile(raw: string): boolean {
   return normalizeIndianMobile(raw) !== null
 }

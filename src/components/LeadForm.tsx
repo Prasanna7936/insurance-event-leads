@@ -3,7 +3,7 @@ import { createLead, updateLead } from '../lib/api'
 import { SMS_OTP_ENABLED } from '../lib/config'
 import { LEAD_STATUSES, OCCUPATIONS } from '../lib/constants'
 import { formatDateTime } from '../lib/format'
-import { isValidIndianMobile, normalizeIndianMobile } from '../lib/mobile'
+import { isValidIndianMobile, normalizeIndianMobile, toTenDigitMobile } from '../lib/mobile'
 import type { Agent, Lead, LeadDraft, Occupation } from '../lib/types'
 import { OtpPanel } from './OtpPanel'
 import { PurposeSelect } from './MultiSelect'
@@ -186,9 +186,10 @@ export function LeadForm({
               value={draft.mobile}
               inputMode="numeric"
               autoComplete="off"
-              placeholder="98765 43210"
+              placeholder="9876543210"
+              maxLength={10}
               disabled={SMS_OTP_ENABLED && isVerified}
-              onChange={(e) => set('mobile', e.target.value.replace(/[^\d+\s-]/g, ''))}
+              onChange={(e) => set('mobile', toTenDigitMobile(e.target.value))}
             />
           </Field>
 
