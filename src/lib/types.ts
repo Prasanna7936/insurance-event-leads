@@ -21,6 +21,8 @@ export type InsurancePurpose =
   | 'Tax Planning'
   | 'Other'
 
+export type VerificationMethod = 'otp' | 'whatsapp_manual'
+
 export type LeadStatus =
   | 'New'
   | 'Contacted'
@@ -66,6 +68,7 @@ export interface Lead {
   remarks: string | null
   mobile_verified: boolean
   mobile_verified_at: string | null
+  verification_method: VerificationMethod | null
   lead_status: LeadStatus
   assigned_to: string | null
   created_by: string | null
@@ -85,6 +88,7 @@ export interface LeadDraft {
   next_meeting_time: string
   remarks: string
   mobile_verified: boolean
+  verification_method: VerificationMethod | ''
   lead_status: LeadStatus
   assigned_to: string
 }

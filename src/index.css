@@ -559,3 +559,22 @@ button { font: inherit; }
   .masthead__right, .tabs, .toolbar, .filters, .cell--actions { display: none !important; }
   body { background: #fff; }
 }
+
+/* WhatsApp message preview disclosure inside the verification panel. */
+.wa-preview { margin-top: 10px; font-size: 13px; color: var(--ink-muted); }
+.wa-preview summary { cursor: pointer; font-weight: 600; color: var(--navy-800); }
+.wa-preview p {
+  margin: 8px 0 0; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--ink-soft); line-height: 1.5;
+}
+
+/* Separator between the OTP and WhatsApp verification options. */
+.verify-or {
+  display: flex; align-items: center; gap: 12px;
+  margin: 12px 0; color: var(--ink-muted);
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+}
+.verify-or::before, .verify-or::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}

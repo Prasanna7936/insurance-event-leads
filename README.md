@@ -166,6 +166,38 @@ Excel column all keep working.
 None of the OTP implementation is deleted — `OtpPanel`, the `api.ts` callers and
 the `send-otp` / `verify-otp` edge functions all stay in the source.
 
+### WhatsApp verification (click-to-chat)
+
+On by default. In the **Mobile Verification** section the agent presses
+**💬 Verify via WhatsApp**, which opens WhatsApp Web in a new tab with a chat to
+the customer's `+91` number and this message pre-filled:
+
+> Welcome to Ravikumar Insurance. Thank you for visiting our insurance event. We
+> would be happy to assist you with your insurance requirements.
+
+The agent sends it, then presses **✓ Mark Mobile Verified**, which stores
+`mobile_verified = true`, `verification_method = 'whatsapp_manual'` and
+`mobile_verified_at`. Skipping that step leaves the lead as **Mobile Verified =
+No**.
+
+**This is an attestation, not a delivery receipt.** WhatsApp click-to-chat gives
+the page no feedback at all — not delivered, not read, not even sent. The app
+deliberately makes no attempt to detect any of that; "verified" records that an
+agent said they messaged the customer.
+
+Handled failure cases: missing number, invalid number, blocked pop-up (an
+explicit fallback link is shown), and `window.open` throwing.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `VITE_WHATSAPP_VERIFICATION_ENABLED` | on | Set to `false` to hide the button |
+| `VITE_WHATSAPP_MESSAGE` | the text above | Override the pre-filled message |
+
+The channel sits behind a `WhatsAppChannel` interface in
+[`src/lib/whatsapp.ts`](src/lib/whatsapp.ts), so a WhatsApp Business API
+implementation can be added later without touching the UI — same pattern as the
+`AuthProvider`.
+
 ### Turning OTP back on
 
 Both of these, or it will not work:

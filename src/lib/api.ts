@@ -151,12 +151,24 @@ function draftToRow(draft: LeadDraft, eventId: string, mobile: string) {
     next_meeting_time: draft.next_meeting_time || null,
     remarks: draft.remarks.trim() || null,
     mobile_verified: draft.mobile_verified,
+    verification_method: draft.mobile_verified ? draft.verification_method || null : null,
     lead_status: draft.lead_status,
     assigned_to: draft.assigned_to || null,
   }
 }
 
 /** Turns Postgres errors into something an agent at a desk can act on. */
+/** True when Postgres/PostgREST is telling us the column is not there yet. */
+function isMissingVerificationMethod(message: string): boolean {
+  return message.includes('verification_method')
+}
+
+/** Drops verification_method so a save still works before the migration is run. */
+function withoutVerificationMethod<T extends Record<string, unknown>>(row: T) {
+  const { verification_method: _omitted, ...rest } = row
+  return rest
+}
+
 function humanizeLeadError(message: string): string {
   if (message.includes('leads_event_mobile_key')) {
     return 'A lead with this mobile number already exists for this event.'
@@ -173,11 +185,19 @@ function humanizeLeadError(message: string): string {
 
 async function sbCreateLead(draft: LeadDraft, eventId: string, mobile: string): Promise<Lead> {
   const { data: sessionData } = await supabase.auth.getSession()
-  const { data, error } = await supabase
-    .from('leads')
-    .insert({ ...draftToRow(draft, eventId, mobile), created_by: sessionData.session?.user.id ?? null })
-    .select('*')
-    .single()
+  const row = { ...draftToRow(draft, eventId, mobile), created_by: sessionData.session?.user.id ?? null }
+
+  const { data, error } = await supabase.from('leads').insert(row).select('*').single()
+
+  if (error && isMissingVerificationMethod(error.message)) {
+    console.warn(
+      'leads.verification_method is missing — run supabase/setup.sql. Saving without it.',
+    )
+    const retry = await supabase.from('leads').insert(withoutVerificationMethod(row)).select('*').single()
+    if (retry.error) throw new Error(humanizeLeadError(retry.error.message))
+    return retry.data
+  }
+
   if (error) throw new Error(humanizeLeadError(error.message))
   return data
 }
@@ -188,12 +208,24 @@ async function sbUpdateLead(
   eventId: string,
   mobile: string,
 ): Promise<Lead> {
-  const { data, error } = await supabase
-    .from('leads')
-    .update(draftToRow(draft, eventId, mobile))
-    .eq('id', id)
-    .select('*')
-    .single()
+  const row = draftToRow(draft, eventId, mobile)
+
+  const { data, error } = await supabase.from('leads').update(row).eq('id', id).select('*').single()
+
+  if (error && isMissingVerificationMethod(error.message)) {
+    console.warn(
+      'leads.verification_method is missing — run supabase/setup.sql. Saving without it.',
+    )
+    const retry = await supabase
+      .from('leads')
+      .update(withoutVerificationMethod(row))
+      .eq('id', id)
+      .select('*')
+      .single()
+    if (retry.error) throw new Error(humanizeLeadError(retry.error.message))
+    return retry.data
+  }
+
   if (error) throw new Error(humanizeLeadError(error.message))
   return data
 }

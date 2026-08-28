@@ -5,7 +5,9 @@ import { LEAD_STATUSES, OCCUPATIONS } from '../lib/constants'
 import { formatDateTime } from '../lib/format'
 import { isValidIndianMobile, normalizeIndianMobile, toTenDigitMobile } from '../lib/mobile'
 import type { Agent, Lead, LeadDraft, Occupation } from '../lib/types'
+import { WHATSAPP_VERIFICATION_ENABLED } from '../lib/whatsapp'
 import { OtpPanel } from './OtpPanel'
+import { WhatsAppVerify } from './WhatsAppVerify'
 import { PurposeSelect } from './MultiSelect'
 import { Field, Spinner, useToast } from './ui'
 
@@ -19,6 +21,7 @@ const EMPTY_DRAFT: LeadDraft = {
   next_meeting_time: '',
   remarks: '',
   mobile_verified: false,
+  verification_method: '',
   lead_status: 'New',
   assigned_to: '',
 }
@@ -35,6 +38,7 @@ function leadToDraft(lead: Lead): LeadDraft {
     next_meeting_time: (lead.next_meeting_time ?? '').slice(0, 5),
     remarks: lead.remarks ?? '',
     mobile_verified: lead.mobile_verified,
+    verification_method: lead.verification_method ?? '',
     lead_status: lead.lead_status,
     assigned_to: lead.assigned_to ?? '',
   }
@@ -87,7 +91,7 @@ export function LeadForm({
 
   useEffect(() => {
     if (draft.mobile_verified && verifiedMobile && verifiedMobile !== normalizedMobile) {
-      setDraft((d) => ({ ...d, mobile_verified: false }))
+      setDraft((d) => ({ ...d, mobile_verified: false, verification_method: '' }))
       setVerifiedMobile(null)
     }
   }, [normalizedMobile, draft.mobile_verified, verifiedMobile])
@@ -113,7 +117,12 @@ export function LeadForm({
     if (!validate() || !normalizedMobile) return
     setSaving(true)
     try {
-      const payload: LeadDraft = { ...draft, mobile_verified: withVerification && isVerified }
+      const verifiedNow = withVerification && isVerified
+      const payload: LeadDraft = {
+        ...draft,
+        mobile_verified: verifiedNow,
+        verification_method: verifiedNow ? draft.verification_method || 'whatsapp_manual' : '',
+      }
       const saved = editing
         ? await updateLead(editing.id, payload, eventId, normalizedMobile)
         : await createLead(payload, eventId, normalizedMobile)
@@ -219,25 +228,57 @@ export function LeadForm({
         </div>
 
         {/* -- Verification --------------------------------------------------
-            Only rendered when SMS/OTP is switched on. With it off the form
-            shows no verification UI at all, and leads save as unverified. */}
-        {SMS_OTP_ENABLED && (
+            OTP (SMS) and WhatsApp are independent options; the section appears
+            when either is enabled. Neither gates submission when SMS is off —
+            an unverified lead simply saves with Mobile Verified = No. */}
+        {(SMS_OTP_ENABLED || WHATSAPP_VERIFICATION_ENABLED) && (
           <>
             <p className="section-label" style={{ marginTop: 22 }}>Mobile verification</p>
-            <OtpPanel
-              mobile={draft.mobile}
-              verified={isVerified}
-              onVerified={(mobile) => {
-                setVerifiedMobile(mobile)
-                set('mobile_verified', true)
-              }}
-              onReset={() => {
-                setVerifiedMobile(null)
-                set('mobile_verified', false)
-              }}
-              disabled={saving}
-            />
-            {editing?.mobile_verified && editing.mobile_verified_at && isVerified && (
+
+            {SMS_OTP_ENABLED && (
+              <>
+                <OtpPanel
+                  mobile={draft.mobile}
+                  verified={isVerified && draft.verification_method !== 'whatsapp_manual'}
+                  onVerified={(mobile) => {
+                    setVerifiedMobile(mobile)
+                    set('mobile_verified', true)
+                    set('verification_method', 'otp')
+                  }}
+                  onReset={() => {
+                    setVerifiedMobile(null)
+                    set('mobile_verified', false)
+                    set('verification_method', '')
+                  }}
+                  disabled={saving}
+                />
+                {WHATSAPP_VERIFICATION_ENABLED && (
+                  <p className="verify-or">or</p>
+                )}
+              </>
+            )}
+
+            {WHATSAPP_VERIFICATION_ENABLED && (
+              <WhatsAppVerify
+                mobile={draft.mobile}
+                verified={isVerified && draft.verification_method === 'whatsapp_manual'}
+                verifiedAt={editing?.mobile_verified_at ?? null}
+                onVerified={(mobile) => {
+                  setVerifiedMobile(mobile)
+                  set('mobile_verified', true)
+                  set('verification_method', 'whatsapp_manual')
+                }}
+                onReset={() => {
+                  setVerifiedMobile(null)
+                  set('mobile_verified', false)
+                  set('verification_method', '')
+                }}
+                disabled={saving}
+              />
+            )}
+
+            {editing?.mobile_verified && editing.mobile_verified_at && isVerified &&
+              draft.verification_method !== 'whatsapp_manual' && (
               <div className="field__hint" style={{ marginTop: 6 }}>
                 Verified on {formatDateTime(editing.mobile_verified_at)}
               </div>
