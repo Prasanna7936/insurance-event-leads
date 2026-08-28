@@ -2,8 +2,15 @@ import { useMemo } from 'react'
 import { INSURANCE_PURPOSES, LEAD_STATUSES, STATUS_TONE } from '../lib/constants'
 import { formatDate, formatTime, todayISO } from '../lib/format'
 import { displayMobile } from '../lib/mobile'
-import type { Agent, Lead } from '../lib/types'
+import type { Agent, Lead, LeadStatus } from '../lib/types'
 import { EmptyState } from './ui'
+
+/**
+ * Status tiles kept off the dashboard. The counts are still computed and the
+ * lead table's column, filter and Excel export are untouched — this only
+ * controls which cards appear in the Event summary grid.
+ */
+const HIDDEN_STAT_CARDS: LeadStatus[] = ['Contacted']
 
 export function Dashboard({
   leads,
@@ -59,9 +66,7 @@ export function Dashboard({
         <div className="card__body">
           <div className="stat-grid">
             <Stat label="Total Leads" value={stats.total} tone="blue" />
-            <Stat label="Mobile Verified" value={stats.verified} tone="green" />
-            <Stat label="Mobile Not Verified" value={stats.unverified} tone="red" />
-            {LEAD_STATUSES.map((status) => (
+            {LEAD_STATUSES.filter((status) => !HIDDEN_STAT_CARDS.includes(status)).map((status) => (
               <Stat
                 key={status}
                 label={status === 'Meeting Scheduled' ? 'Meetings Scheduled' : status}
