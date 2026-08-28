@@ -16,7 +16,7 @@ Tick **Production**, **Preview** and **Development** for each one.
 | `VITE_AUTH_PROVIDER` | `mvp` | Single built-in Admin login |
 | `VITE_ADMIN_USER` | `Admin` | Login user ID |
 | `VITE_ADMIN_PASSWORD_SHA256` | the SHA-256 hash from your local `.env` | Password is never stored in plaintext |
-| `VITE_SMS_OTP_ENABLED` | `false` | MSG91 is not connected |
+| `VITE_SMS_OTP_ENABLED` | *(omit)* | Optional. OTP is off unless this is exactly `true` |
 
 Copy the exact values from your local `.env` — it is git-ignored and never
 leaves your machine.

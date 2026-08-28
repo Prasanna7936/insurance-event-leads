@@ -147,29 +147,41 @@ npm install && npm run dev
 Demo mode is for looking around and for training staff. It is not a database —
 data lives in one browser and is lost when site data is cleared.
 
-### SMS off, database on — for real events
+### SMS off — the default
 
-Keep Supabase, drop the SMS. Two changes, and both are required:
+OTP is off unless `VITE_SMS_OTP_ENABLED` is exactly the string `true`. Leaving
+it unset, empty, or set to anything else keeps the Mobile Verification section
+out of the form entirely, and the OTP code is tree-shaken out of the bundle.
+
+The database default matches:
+
+```sql
+update public.app_config set otp_enforcement = false;   -- set by supabase/setup.sql
+```
+
+With SMS off, the form shows no verification control and leads save with
+**Mobile Verified = No**. The column, its dashboard tiles, the filter and the
+Excel column all keep working.
+
+None of the OTP implementation is deleted — `OtpPanel`, the `api.ts` callers and
+the `send-otp` / `verify-otp` edge functions all stay in the source.
+
+### Turning OTP back on
+
+Both of these, or it will not work:
 
 ```bash
-# 1. frontend: replace the OTP panel with a manual tick
-echo 'VITE_SMS_OTP_ENABLED=false' >> .env
+VITE_SMS_OTP_ENABLED=true          # frontend: render the panel
 ```
 
 ```sql
--- 2. database: allow a hand-ticked verification
-update public.app_config set otp_enforcement = false;
+update public.app_config set otp_enforcement = true;   -- database: require a real OTP
 ```
 
-The **Mobile Verified** column, its dashboard tiles, the filter and the Excel
-column all keep working — the value now reflects what the agent confirmed in
-person rather than an OTP. A banner in the app states this, so nobody later
-mistakes a ticked box for a verified SMS.
-
-To turn OTP back on, set both back (`true`). The database flag is the one that
-matters: with `otp_enforcement = true`, `mobile_verified` cannot be stored unless
-a real OTP was verified in the previous two hours, no matter what the browser
-sends.
+You also need the edge functions deployed and MSG91 configured (section 7). The
+database flag is the one that actually matters: with `otp_enforcement = true`,
+`mobile_verified` cannot be stored unless a real OTP was verified in the previous
+two hours, no matter what the browser sends.
 
 ---
 
@@ -330,7 +342,8 @@ supabase functions deploy send-otp verify-otp
 - [ ] Migration applied, seed run
 - [ ] An agent account exists for every person on the desk
 - [ ] MSG91 secrets set; `OTP_DEV_MODE` unset — or SMS deliberately switched off
-      in **both** places (`VITE_SMS_OTP_ENABLED=false` and `otp_enforcement = false`)
+      in **both** places (`VITE_SMS_OTP_ENABLED` unset/not "true", and
+      `otp_enforcement = false`)
 - [ ] A real OTP received on a real handset (if SMS is on)
 - [ ] `ALLOWED_ORIGINS` set to the production domain
 - [ ] The event for the day created and selected
@@ -390,7 +403,7 @@ clears its verification and requires a fresh OTP. Leaving the number untouched
 preserves the original `mobile_verified_at`.
 
 **The SMS switch is enforced in the database, not the browser.** Hiding the OTP
-panel with `VITE_SMS_OTP_ENABLED=false` is only cosmetic — anyone can edit
+panel by leaving `VITE_SMS_OTP_ENABLED` off is only cosmetic — anyone can edit
 frontend config. What actually decides whether a hand-ticked `mobile_verified`
 is accepted is `public.app_config.otp_enforcement`, checked by a trigger, and
 only an admin can change it. That is why turning SMS off takes two steps.
